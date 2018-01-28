@@ -360,6 +360,21 @@ ggplot(table_tema, aes(x = table_tema$nomes, y = table_tema$tema_prop))+
 #salvar
 ggsave("tema_saliencia.png", width = 8, height = 4, units = "in")
 
+#=========================================#
+# CONTAGEM 
+
+# Voto das pessoas vitimas de violencia 
+data2 <- dados_modelo2
+data2 <- data2[data2$Vítima_Violência == "Vítima",]
+table(data2$Voto_Mandatário)
+
+# Avaliacao das pessaos vitimas de violencia
+data1 <- dados_modelo1
+data1 <- data1[data1$Vítima_Violência == "Vítima",]
+table(data1$Avaliação_GovFederal)
+
+
+
 
 
 
