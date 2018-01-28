@@ -13,14 +13,14 @@
 #----------------------------------------#
 
 # instalar pacotes necessarios
-# install.packages(c("readl", "stringr", "dplyr", "stargazer", "MASS","ordinal","erer", "ggplot2"))
+# install.packages(c("readl", "stringr", "dplyr", "stargazer", "MASS","ordinal","erer", "ggplot2", ""))
 
 # definir diretorio de trabalho
 setwd("~/Consulting/Gabi")
 
 # carregar pacote
 library(readxl); library(stringr); library(dplyr); library(stargazer); library(MASS);
-library(ordinal); library(erer); library(ggplot2)
+library(ordinal); library(erer); library(ggplot2); library(rcompanion)
 
 # ler bancos de dados
 LapopBrazil_2006 <- read_excel("Dados/LapopBrazil_2006.xlsx")
@@ -172,13 +172,22 @@ funcao.mani <- function(data){
   # Recodificar Avaliacao do Gov. Fed.
   data$Avaliação_GovFederal <- str_replace(data$Avaliação_GovFederal, "8", "") # Recodificar NAs 
   data$Avaliação_GovFederal <- str_replace(data$Avaliação_GovFederal, "9", "")
-  data$Avaliação_GovFederal <- str_replace(data$Avaliação_GovFederal, "1", "5")
-  data$Avaliação_GovFederal <- str_replace(data$Avaliação_GovFederal, "2", "4")
-  data$Avaliação_GovFederal <- str_replace(data$Avaliação_GovFederal, "3", "3")
-  data$Avaliação_GovFederal <- str_replace(data$Avaliação_GovFederal, "4", "2")
-  data$Avaliação_GovFederal <- str_replace(data$Avaliação_GovFederal, "5", "1")
-  data$Avaliação_GovFederal <- as.numeric(data$Avaliação_GovFederal)
-  data$Avaliação_GovFederal <- factor(data$Avaliação_GovFederal, levels=c("1", "2", "3", "4", "5"), ordered = TRUE)
+  
+  data <- mutate(data, Avaliação_GovernoFederal = "")
+  data$Avaliação_GovernoFederal[data$Avaliação_GovFederal == 1] <- 5
+  data$Avaliação_GovernoFederal[data$Avaliação_GovFederal == 2] <- 4
+  data$Avaliação_GovernoFederal[data$Avaliação_GovFederal == 3] <- 3
+  data$Avaliação_GovernoFederal[data$Avaliação_GovFederal == 4] <- 2
+  data$Avaliação_GovernoFederal[data$Avaliação_GovFederal == 5] <- 1
+  data$Avaliação_GovernoFederal <- factor(data$Avaliação_GovernoFederal, 
+                                          levels=c("1", "2", "3", "4", "5"), 
+                                          labels = c("Péssimo", "Ruim","Regular", "Bom", "Muito Bom"),
+                                          ordered = TRUE)
+  
+  data$Avaliação_GovFederal <- factor(data$Avaliação_GovFederal, 
+                                          levels=c("1", "2", "3", "4", "5"), 
+                                          labels = c("Muito Bom", "Bom","Regular", "Ruim", "Péssimo"),
+                                          ordered = TRUE)
   
   # Recodificar Urbanizazao
   data <- mutate(data, Urbanização = ifelse(Urbanização == 1, 1, 0))
@@ -239,8 +248,11 @@ plot_odds<-function(x, title = NULL){
 # MODELO 1 - Reg. Log. Ordinal
 #---------------------------------#
 
+dados_modelo1.5000 <- sample_n(dados_modelo1, 5000)
+dados_modelo1.1000 <- sample_n(dados_modelo1, 1000)
+
 # executar modelo
-modelo1 <- clm(Avaliação_GovFederal ~ 
+modelo1 <- clm(Avaliação_GovernoFederal ~ 
                  Vítima_Violência +
                  Saliência_Violência +
                  Gênero +
@@ -248,20 +260,25 @@ modelo1 <- clm(Avaliação_GovFederal ~
                  Escolaridade +
                  Renda_Familiar +
                  Raça+
-                 Urbanização, data = dados_modelo1)
+                 Urbanização, data = dados_modelo1.5000)
+
 
 # visualizar resultados do modelo
 summary(modelo1)
-stargazer(modelo1,  type = "text", title = "Resultados Modelo 1", style = "ajps")
+stargazer(modelo1,  type = "text", title = "Resultados Modelo 1", style = "ajps", apply.coef = exp,  p.auto=FALSE)
+
+# Estatisticas de ajuste 
+nagelkerke(fit = modelo1)
 
 #---------------------------------#
 # MODELO 2 - Reg. Log. Binomial
 #---------------------------------#
-contrasts(dados_modelo2$Voto_Mandatário)
+dados_modelo2 <- mutate(dados_modelo2, RaçaIndio = ifelse(Raça == "Indio", 1, 0))
+dados_modelo2 <- mutate(dados_modelo2, RaçaBranco = ifelse(Raça == "Branco", 1, 0))
+dados_modelo2 <- mutate(dados_modelo2, RaçaPardo = ifelse(Raça == "Pardo", 1, 0))
 
-dados_modelo2 <- mutate(dados_modelo2, Raça_Indio = ifelse(Raça == "Indio", 1, 0))
-dados_modelo2 <- mutate(dados_modelo2, Raça_Branco = ifelse(Raça == "Branco", 1, 0))
-dados_modelo2 <- mutate(dados_modelo2, Raça_Pardo = ifelse(Raça == "Pardo", 1, 0))
+
+dados_modelo2.500 <- sample_n(dados_modelo2, 500)
 
 # executar modelo
 modelo2 <- glm( Voto_Mandatário ~  
@@ -270,13 +287,17 @@ modelo2 <- glm( Voto_Mandatário ~
                   Gênero +
                   Idade +
                   Escolaridade +
-                  Raça +
+                  RaçaBranco+
+                  RaçaPardo+
                   Urbanização, 
-                  data = dados_modelo2, family = binomial(link = "logit"))
+                  data = dados_modelo2.500, family = binomial(link = "logit"))
 
 # visualizar resultados
 summary(modelo2)
 stargazer(modelo2,  type = "text", title = "Resultados Modelo 2", style = "ajps",  apply.coef = exp,  p.auto=FALSE)
+
+# Estatisticas de ajuste 
+nagelkerke(fit = modelo2)
 
 #---- plot models ----#
 cp1 <- plot_odds(modelo2, "")
@@ -339,16 +360,7 @@ ggplot(table_tema, aes(x = table_tema$nomes, y = table_tema$tema_prop))+
 #salvar
 ggsave("tema_saliencia.png", width = 8, height = 4, units = "in")
 
-#=========================================#
-# CONTAGEM 
 
-# 
-data <- dados_modelo2
-data1 <- data[data$Vítima_Violência == "Vítima",]
-table(data1$Voto_Mandatário)
-
-data2 <- dados_modelo2[dados_modelo2$Vítima_Violência == 1,]
-table(data1$Avaliação_GovFederal)
 
 
 
