@@ -314,7 +314,8 @@ summary(dados_modelo2$Renda_Familiar)
 summary(as.factor(dados_modelo2$Raça))
 summary(as.factor(dados_modelo2$Voto_Mandatário))
 summary(as.factor(dados_modelo2$Saliência_Violência))
-                    
+summary(as.factor(dados_modelo2$Vítima_Violência))
+
 summary(dados_modelo1$Urbanização)
 summary(dados_modelo1$Gênero)
 summary(dados_modelo1$Avaliação_GovFederal)
@@ -323,6 +324,7 @@ summary(dados_modelo1$Escolaridade)
 summary(dados_modelo1$Renda_Familiar)
 summary(as.factor(dados_modelo1$Raça))
 summary(as.factor(dados_modelo1$Saliência_Violência))
+summary(as.factor(dados_modelo1$Vítima_Violência))
 
 #==================================
 # Ranking Tema
@@ -359,21 +361,6 @@ ggplot(table_tema, aes(x = table_tema$nomes, y = table_tema$tema_prop))+
 
 #salvar
 ggsave("tema_saliencia.png", width = 8, height = 4, units = "in")
-
-#=========================================#
-# CONTAGEM 
-
-# Voto das pessoas vitimas de violencia 
-data2 <- dados_modelo2
-data2 <- data2[data2$Vítima_Violência == "Vítima",]
-table(data2$Voto_Mandatário)
-
-# Avaliacao das pessaos vitimas de violencia
-data1 <- dados_modelo1
-data1 <- data1[data1$Vítima_Violência == "Vítima",]
-table(data1$Avaliação_GovFederal)
-
-
 
 
 
